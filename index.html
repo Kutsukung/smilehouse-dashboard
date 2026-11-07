@@ -16,18 +16,11 @@
 <link rel="manifest" href="manifest.webmanifest" id="mf">
 <!--
   Smilehouse Dashboard: หน้าเปิดแอปจากหน้าจอโฮม (ไอคอน + ชื่อแอป) แล้วแสดงแดชบอร์ด Apps Script เต็มจอ
-  - ไม่มีลิงก์แดชบอร์ดในไฟล์นี้ (repo เป็น public) ลิงก์มาจากส่วน #u=… ของลิงก์ที่ส่งให้พนักงาน แล้วจำไว้ในเครื่อง
+  - ลิงก์แดชบอร์ดอยู่ที่ DASH_URL ด้านล่าง (ใส่ลิงก์อื่นชั่วคราวด้วย #u=… ได้)
   - อัปเดต Apps Script ด้วย Deploy > Manage deployments > New version (URL เดิม) ไม่ต้องแก้ไฟล์นี้
+  - แก้ไฟล์นี้เฉพาะเมื่อ URL แดชบอร์ดเปลี่ยน (กด New deployment)
   - Apps Script ต้องอนุญาตให้ฝังหน้า: doGet ใน Code.gs มี setXFrameOptionsMode(ALLOWALL) (รุ่น 1.1 ขึ้นไป)
 -->
-<script>
-  // iPhone: เอา manifest ออก ให้ "เพิ่มไปยังหน้าจอโฮม" จำลิงก์ปัจจุบันทั้งหมด (รวม #u=…) ไม่ใช่ start_url
-  // Android ใช้ manifest ตามปกติ (แอปที่ติดตั้งกับ Chrome ใช้ที่เก็บข้อมูลร่วมกัน จึงจำลิงก์ได้)
-  (function () {
-    var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (ios) { var m = document.getElementById('mf'); if (m) m.parentNode.removeChild(m); }
-  })();
-</script>
 <style>
   :root { --page:#f4f2ee; --card:#fff; --ink:#17191c; --muted:#6b6e73; --brand:#a5614f; --ring:#e2ddd6; color-scheme: light dark; }
   @media (prefers-color-scheme: dark) { :root { --page:#0d0d0d; --card:#1a1a19; --ink:#f0efec; --muted:#a3a29b; --ring:#2c2c2a; } }
@@ -102,12 +95,14 @@
 
   <div class="card" id="openCard" hidden>
     <a class="btn" id="openLink" href="#" rel="noopener">เปิดแดชบอร์ดในเบราว์เซอร์</a>
-    <p class="muted" style="margin:10px 0 0">ลิงก์แดชบอร์ดถูกจำไว้ในเครื่องนี้แล้ว <span class="ok">✓</span> · <a href="#" id="change">เปลี่ยนลิงก์</a></p>
+    <p class="muted" style="margin:10px 0 0" hidden><a href="#" id="change">เปลี่ยนลิงก์</a></p>
   </div>
 </main>
 
 <script>
 (function () {
+  // URL แดชบอร์ด (Apps Script Web app) · เปลี่ยนเฉพาะเมื่อกด New deployment
+  var DASH_URL = 'https://script.google.com/macros/s/AKfycbzv25XJIJiQM5MUAFSwRoFAKypz-Ly95iqal_eCZ8RF2F2UVXYqfhflhzKb5RHBflg/exec';
   var KEY = 'smilehouse-dash-url';
   var $ = function (id) { return document.getElementById(id); };
   var ua = navigator.userAgent;
@@ -130,7 +125,7 @@
 
   var fromHash = parse(location.hash);
   if (fromHash) store(fromHash);
-  var url = fromHash || load();
+  var url = fromHash || DASH_URL || load();
 
   function showApp() {
     $('home').hidden = true; $('wait').hidden = false;
