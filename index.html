@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smilehouse Dashboard</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Smilehouse">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="manifest" href="manifest.webmanifest" id="mf">
+<!--
+  Smilehouse Dashboard: หน้าเปิดแอปจากหน้าจอโฮม (ไอคอน + ชื่อแอป) แล้วแสดงแดชบอร์ด Apps Script เต็มจอ
+  - ไม่มีลิงก์แดชบอร์ดในไฟล์นี้ (repo เป็น public) ลิงก์มาจากส่วน #u=… ของลิงก์ที่ส่งให้พนักงาน แล้วจำไว้ในเครื่อง
+  - อัปเดต Apps Script ด้วย Deploy > Manage deployments > New version (URL เดิม) ไม่ต้องแก้ไฟล์นี้
+  - Apps Script ต้องอนุญาตให้ฝังหน้า: doGet ใน Code.gs มี setXFrameOptionsMode(ALLOWALL) (รุ่น 1.1 ขึ้นไป)
+-->
+<script>
+  // iPhone: เอา manifest ออก ให้ "เพิ่มไปยังหน้าจอโฮม" จำลิงก์ปัจจุบันทั้งหมด (รวม #u=…) ไม่ใช่ start_url
+  // Android ใช้ manifest ตามปกติ (แอปที่ติดตั้งกับ Chrome ใช้ที่เก็บข้อมูลร่วมกัน จึงจำลิงก์ได้)
+  (function () {
+    var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (ios) { var m = document.getElementById('mf'); if (m) m.parentNode.removeChild(m); }
+  })();
+</script>
+<style>
+  :root { --page:#f4f2ee; --card:#fff; --ink:#17191c; --muted:#6b6e73; --brand:#a5614f; --ring:#e2ddd6; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --page:#0d0d0d; --card:#1a1a19; --ink:#f0efec; --muted:#a3a29b; --ring:#2c2c2a; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--page); color: var(--ink);
+    font-family: "IBM Plex Sans Thai","Noto Sans Thai",system-ui,-apple-system,"Segoe UI","Leelawadee UI",sans-serif; }
+  #app { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top); bottom: env(safe-area-inset-bottom);
+    width: 100%; height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border: 0; background: transparent; }
+  #wait { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: 15px; }
+  #wait img { width: 84px; height: 84px; border-radius: 20px; display: block; margin: 0 auto 14px; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+  main { max-width: 460px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 20px 40px; }
+  .card { background: var(--card); border: 1px solid var(--ring); border-radius: 18px; padding: 22px 20px; margin-bottom: 16px; }
+  .hero { text-align: center; }
+  .hero img { width: 112px; height: 112px; border-radius: 26px; box-shadow: 0 8px 26px rgba(0,0,0,.14); }
+  h1 { font-size: 22px; margin: 14px 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  p, li { font-size: 15px; line-height: 1.55; }
+  .muted { color: var(--muted); font-size: 13.5px; }
+  ol { padding-left: 22px; margin: 6px 0 0; }
+  .btn { display: block; width: 100%; text-align: center; font: inherit; font-size: 16px; font-weight: 600; padding: 13px 16px; border-radius: 12px;
+    border: 1px solid var(--ring); background: var(--card); color: var(--ink); text-decoration: none; cursor: pointer; margin-top: 10px; }
+  .btn.pri { background: var(--brand); border-color: var(--brand); color: #fff; }
+  input { width: 100%; font: inherit; font-size: 15px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--ring); background: var(--page); color: var(--ink); }
+  .err { color: #c0392b; font-size: 14px; min-height: 1.2em; margin: 6px 0 0; }
+  .ok { color: #2e7d4f; font-weight: 600; }
+  .ic { display: inline-block; min-width: 1.4em; text-align: center; font-weight: 700; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div id="wait" hidden><div><img src="icons/apple-touch-icon.png" alt="">กำลังเปิด Smilehouse Dashboard…</div></div>
+<iframe id="app" title="Smilehouse Dashboard" hidden></iframe>
+
+<main id="home" hidden>
+  <div class="card hero">
+    <img src="icons/icon-512.png" alt="">
+    <h1>Smilehouse Dashboard</h1>
+    <p class="muted">แดชบอร์ดการเงินและการตลาด คลินิกทันตกรรมสไมล์เฮาส์</p>
+  </div>
+
+  <div class="card" id="setup" hidden>
+    <h2>ใส่ลิงก์แดชบอร์ด (ครั้งเดียวต่อเครื่อง)</h2>
+    <p class="muted">วางลิงก์ที่ได้รับ (ลิงก์หน้านี้ที่มี #u=… หรือลิงก์ Apps Script ที่ลงท้ายด้วย /exec)</p>
+    <input id="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <p class="err" id="err"></p>
+    <button class="btn pri" id="save" type="button">บันทึกและเปิดแดชบอร์ด</button>
+  </div>
+
+  <div class="card" id="install" hidden>
+    <h2>เพิ่มไอคอนลงหน้าจอโฮม</h2>
+    <div id="ios" hidden>
+      <ol>
+        <li>เปิดหน้านี้ใน <b>Safari</b></li>
+        <li>แตะปุ่มแชร์ <span class="ic">⬆︎</span> ด้านล่าง (หรือด้านบน)</li>
+        <li>เลื่อนลงแล้วแตะ <b>เพิ่มไปยังหน้าจอโฮม</b></li>
+        <li>แตะ <b>เพิ่ม</b> แล้วเปิดแดชบอร์ดจากไอคอน Smilehouse</li>
+      </ol>
+    </div>
+    <div id="android" hidden>
+      <button class="btn pri" id="installBtn" type="button" hidden>ติดตั้งแอป Smilehouse</button>
+      <ol id="androidSteps">
+        <li>เปิดหน้านี้ใน <b>Chrome</b></li>
+        <li>แตะเมนู <span class="ic">⋮</span> มุมขวาบน</li>
+        <li>แตะ <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></li>
+        <li>เปิดแดชบอร์ดจากไอคอน Smilehouse</li>
+      </ol>
+    </div>
+    <div id="desk" hidden>
+      <p>เปิดลิงก์นี้ในมือถือ แล้วเพิ่มไปยังหน้าจอโฮม หรือบนคอมพิวเตอร์ใช้ Chrome/Edge กดไอคอนติดตั้ง <span class="ic">⊕</span> ในช่องที่อยู่</p>
+    </div>
+  </div>
+
+  <div class="card" id="openCard" hidden>
+    <a class="btn" id="openLink" href="#" rel="noopener">เปิดแดชบอร์ดในเบราว์เซอร์</a>
+    <p class="muted" style="margin:10px 0 0">ลิงก์แดชบอร์ดถูกจำไว้ในเครื่องนี้แล้ว <span class="ok">✓</span> · <a href="#" id="change">เปลี่ยนลิงก์</a></p>
+  </div>
+</main>
+
+<script>
+(function () {
+  var KEY = 'smilehouse-dash-url';
+  var $ = function (id) { return document.getElementById(id); };
+  var ua = navigator.userAgent;
+  var isIOS = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  var standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches;
+
+  // รับลิงก์ Apps Script เต็ม (/exec, รวมบัญชี Workspace /a/macros/โดเมน/) หรือรหัส deployment อย่างเดียว
+  function parse(s) {
+    s = String(s || '').trim();
+    try { s = decodeURIComponent(s); } catch (e) { /* ใช้ตามเดิม */ }
+    var h = s.match(/[#&]u=([^&\s]+)/); if (h) s = h[1];
+    var m = s.match(/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+|macros)\/s\/[A-Za-z0-9_-]{20,}\/exec/);
+    if (m) return 'https://' + m[0];
+    m = s.match(/^[A-Za-z0-9_-]{30,}$/);
+    return m ? 'https://script.google.com/macros/s/' + m[0] + '/exec' : '';
+  }
+  function load() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+  function store(u) { try { localStorage.setItem(KEY, u); } catch (e) { /* จำไม่ได้ ใช้จาก #u= ทุกครั้ง */ } }
+
+  var fromHash = parse(location.hash);
+  if (fromHash) store(fromHash);
+  var url = fromHash || load();
+
+  function showApp() {
+    $('home').hidden = true; $('wait').hidden = false;
+    var f = $('app');
+    f.onload = function () { $('wait').hidden = true; };
+    f.src = url; f.hidden = false;
+    setTimeout(function () { $('wait').hidden = true; }, 15000);
+  }
+  function showHome(forceSetup) {
+    $('home').hidden = false;
+    $('setup').hidden = !!url && !forceSetup;
+    $('openCard').hidden = !url || !!forceSetup;
+    if (url) $('openLink').href = url;
+    $('install').hidden = standalone;
+    $('ios').hidden = !isIOS; $('android').hidden = !isAndroid; $('desk').hidden = isIOS || isAndroid;
+    if (forceSetup || !url) setTimeout(function () { $('url').focus(); }, 50);
+  }
+
+  $('save').onclick = function () {
+    var u = parse($('url').value);
+    if (!u) { $('err').textContent = 'ลิงก์ไม่ถูกต้อง ต้องเป็นลิงก์ที่ลงท้ายด้วย /exec หรือลิงก์หน้านี้ที่มี #u='; return; }
+    store(u); url = u; $('err').textContent = '';
+    if (standalone) showApp(); else showHome(false);
+  };
+  $('change').onclick = function (e) { e.preventDefault(); showHome(true); };
+
+  // Android: ปุ่มติดตั้งของ Chrome (ถ้าเครื่องรองรับ)
+  var deferred = null;
+  addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferred = e; $('installBtn').hidden = false;
+  });
+  $('installBtn').onclick = function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; $('installBtn').hidden = true; });
+  };
+
+  // เปิดจากไอคอนหน้าจอโฮม = แสดงแดชบอร์ดเต็มจอ · เปิดในเบราว์เซอร์ = หน้าวิธีเพิ่มไอคอน
+  if (standalone && url && !/[?&]setup\b/.test(location.search)) showApp();
+  else showHome(/[?&]setup\b/.test(location.search));
+})();
+</script>
+</body>
+</html>
