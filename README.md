@@ -21,6 +21,10 @@ https://kutsukung.github.io/smilehouse-dashboard/
 - **iPhone**: เปิดลิงก์ใน Safari > ปุ่มแชร์ > เพิ่มไปยังหน้าจอโฮม > เพิ่ม
 - **Android**: เปิดลิงก์ใน Chrome > ⋮ > ติดตั้งแอป (หรือ เพิ่มลงในหน้าจอหลัก) หรือกดปุ่ม "ติดตั้งแอป Smilehouse" ในหน้า
 - เปิดจากไอคอน = แดชบอร์ดเต็มจอ (เข้าด้วยชื่อ + PIN เหมือนเดิม) · เปิดลิงก์ในเบราว์เซอร์ = หน้าวิธีเพิ่มไอคอน
+- จำการเข้าสู่ระบบ (รุ่น 1.2): แดชบอร์ดอยู่ในกรอบของ Google ซึ่ง iPhone/Safari ล้างข้อมูลเมื่อปิดแอป จึงส่ง token ที่ติ๊ก "จำ" มาเก็บที่หน้านี้ (`localStorage` คีย์ `smilehouse-dash-tok`, `smilehouse-dash-name`) ผ่าน `postMessage`
+  - แดชบอร์ด (App_1.html) ส่งถึง `https://kutsukung.github.io` เท่านั้น · หน้านี้รับเฉพาะข้อความจาก `*.googleusercontent.com` ที่อยู่ในกรอบแดชบอร์ดของหน้านี้
+  - ทุก repo ของ kutsukung.github.io ใช้ที่เก็บข้อมูลร่วมกัน: อย่าวางหน้าเว็บของคนอื่นใน GitHub Pages ของบัญชีนี้
+  - ออกจากระบบในแดชบอร์ด = ลบ token ที่นี่ด้วย
 
 ## ไฟล์
 - `index.html` หน้าเปิดแอป (`DASH_URL` = URL แดชบอร์ด · iPhone ใช้ apple-touch-icon · Android ใช้ manifest)
