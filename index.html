@@ -94,7 +94,7 @@
   </div>
 
   <div class="card" id="openCard" hidden>
-    <a class="btn" id="openLink" href="#" rel="noopener">เปิดแดชบอร์ดในเบราว์เซอร์</a>
+    <a class="btn" id="openLink" href="#" rel="noopener">เปิดแดชบอร์ด</a>
     <p class="muted" style="margin:10px 0 0" hidden><a href="#" id="change">เปลี่ยนลิงก์</a></p>
   </div>
 </main>
@@ -151,6 +151,37 @@
     if (standalone) showApp(); else showHome(false);
   };
   $('change').onclick = function (e) { e.preventDefault(); showHome(true); };
+  // เปิดแดชบอร์ดในหน้านี้ (ไม่ไปหน้า Google) เพื่อให้จำการเข้าสู่ระบบได้ · กดค้าง/คลิกขวายังเปิดลิงก์เดิมได้
+  $('openLink').onclick = function (e) { if (!url) return; e.preventDefault(); showApp(); };
+
+  // ที่เก็บการเข้าสู่ระบบของแดชบอร์ด: แดชบอร์ดอยู่ในกรอบของ Google (เว็บรอง) ซึ่ง iPhone/Safari ล้างข้อมูลเมื่อปิดแอป
+  // จึงฝาก token ไว้กับหน้านี้ (เว็บหลัก) · รับเฉพาะข้อความจากกรอบแดชบอร์ดของหน้านี้ที่มาจาก *.googleusercontent.com
+  var STORE = { tok: 'smilehouse-dash-tok', name: 'smilehouse-dash-name' };
+  function fromDash(src) {
+    var f = $('app');
+    if (!src || f.hidden || !f.contentWindow) return false;
+    return (function walk(w, d) {
+      if (w === src) return true;
+      if (d > 4) return false;
+      try { for (var i = 0; i < w.length; i++) if (walk(w[i], d + 1)) return true; } catch (e) { /* ข้ามกรอบที่เข้าไม่ได้ */ }
+      return false;
+    })(f.contentWindow, 0);
+  }
+  addEventListener('message', function (ev) {
+    var d = ev.data;
+    if (!d || typeof d !== 'object' || (d.fdDash !== 'get' && d.fdDash !== 'put')) return;
+    if (!/^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/.test(ev.origin) || !fromDash(ev.source)) return;
+    if (d.fdDash === 'get') {
+      var r = { fdDash: 'tok', tok: '', name: '', app: standalone };
+      try { r.tok = localStorage.getItem(STORE.tok) || ''; r.name = localStorage.getItem(STORE.name) || ''; } catch (e) { /* */ }
+      ev.source.postMessage(r, ev.origin);
+    } else if (STORE.hasOwnProperty(d.k)) {
+      try {
+        if (typeof d.v === 'string' && d.v && d.v.length < 4096) localStorage.setItem(STORE[d.k], d.v);
+        else localStorage.removeItem(STORE[d.k]);
+      } catch (e) { /* เก็บไม่ได้ ต้องเข้าสู่ระบบใหม่ครั้งหน้า */ }
+    }
+  });
 
   // Android: ปุ่มติดตั้งของ Chrome (ถ้าเครื่องรองรับ)
   var deferred = null;
